@@ -1,8 +1,8 @@
-import React, { useState, ChangeEvent, useEffect } from 'react';
+import { useState, ChangeEvent, useEffect } from 'react';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
-import { Dice1, History, Trash2, Trash } from 'lucide-react';
+import { Dice1, History } from 'lucide-react';
 
 type Position = 'TOP' | 'JUNGLE' | 'MID' | 'ADC' | 'SUPPORT';
 
@@ -107,12 +107,6 @@ const TeamDivider = () => {
     localStorage.removeItem('teamRecords');
   };
 
-  const deleteRecord = (recordId: string) => {
-    const updatedRecords = records.filter(record => record.id !== recordId);
-    setRecords(updatedRecords);
-    localStorage.setItem('teamRecords', JSON.stringify(updatedRecords));
-  };
-
   return (
     <div className="container mx-auto p-4 max-w-2xl">
       <Card>
@@ -193,27 +187,16 @@ const TeamDivider = () => {
                     variant="destructive" 
                     size="sm" 
                     onClick={clearHistory}
-                    className="bg-red-500 hover:bg-red-600 text-white font-medium px-4 py-2 rounded-md shadow-sm flex items-center gap-2"
+                    className="bg-red-500 hover:bg-red-600 text-white font-medium px-4 py-2 rounded-md shadow-sm"
                   >
-                    <Trash2 className="h-4 w-4" />
-                    전체 기록 삭제
+                    기록 삭제
                   </Button>
                 </div>
                 <div className="space-y-4">
                   {records.map((record) => (
                     <Card key={record.id} className="bg-gray-50">
                       <CardContent className="p-4">
-                        <div className="flex justify-between items-center mb-2">
-                          <div className="text-sm text-gray-500">{record.date}</div>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => deleteRecord(record.id)}
-                            className="text-red-500 hover:text-red-600 hover:bg-red-50"
-                          >
-                            <Trash className="h-4 w-4" />
-                          </Button>
-                        </div>
+                        <div className="text-sm text-gray-500 mb-2">{record.date}</div>
                         <div className="grid grid-cols-2 gap-4">
                           <div className="space-y-2">
                             <h4 className="font-medium text-blue-600">A팀</h4>
