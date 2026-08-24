@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Layout from './components/Layout';
 import TeamDivider from './pages/TeamDivider';
 
@@ -8,8 +8,8 @@ function App() {
       <Routes>
         <Route path="/" element={<Layout />}>
           <Route index element={<TeamDivider />} />
-          <Route path="teams" element={<div>팀 목록</div>} />
-          <Route path="create" element={<div>팀 생성</div>} />
+          {/* 미구현 경로로 들어와도 빈 화면 대신 팀 나누기 화면을 보여준다. */}
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
       </Routes>
     </Router>
