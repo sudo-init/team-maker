@@ -20,6 +20,10 @@ interface TeamRecord {
 
 const POSITIONS: Position[] = ['TOP', 'JUNGLE', 'MID', 'ADC', 'SUPPORT'];
 
+const STORAGE_KEY = 'teamRecords';
+// localStorage 용량 초과를 막기 위해 최근 기록만 남긴다.
+const MAX_RECORDS = 50;
+
 const TeamDivider = () => {
   const [players, setPlayers] = useState<Record<Position, [string, string]>>({
     TOP: ['', ''],
@@ -35,10 +39,20 @@ const TeamDivider = () => {
   const [showHistory, setShowHistory] = useState(false);
 
   useEffect(() => {
-    // localStorage에서 기록 불러오기
-    const savedRecords = localStorage.getItem('teamRecords');
-    if (savedRecords) {
-      setRecords(JSON.parse(savedRecords));
+    // localStorage에서 기록 불러오기.
+    // 저장된 값이 깨져 있어도 화면 전체가 죽지 않도록 파싱 실패를 삼킨다.
+    try {
+      const savedRecords = localStorage.getItem(STORAGE_KEY);
+      if (!savedRecords) return;
+
+      const parsed = JSON.parse(savedRecords);
+      if (Array.isArray(parsed)) {
+        setRecords(parsed);
+      } else {
+        localStorage.removeItem(STORAGE_KEY);
+      }
+    } catch {
+      localStorage.removeItem(STORAGE_KEY);
     }
   }, []);
 
@@ -57,14 +71,23 @@ const TeamDivider = () => {
       teamB: newTeamB
     };
 
-    const updatedRecords = [newRecord, ...records];
-    setRecords(updatedRecords);
-    localStorage.setItem('teamRecords', JSON.stringify(updatedRecords));
+    setRecords(prev => {
+      const updatedRecords = [newRecord, ...prev].slice(0, MAX_RECORDS);
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedRecords));
+      } catch {
+        // 용량 초과 등으로 저장에 실패해도 화면의 팀 배정 결과는 유지한다.
+      }
+      return updatedRecords;
+    });
   };
 
   const makeTeams = () => {
-    // 모든 포지션에 두 명의 선수가 입력되었는지 확인
-    const isAllFilled = Object.values(players).every(([p1, p2]) => p1 && p2);
+    // 모든 포지션에 두 명의 선수가 입력되었는지 확인.
+    // 공백만 입력한 경우도 미입력으로 본다.
+    const isAllFilled = Object.values(players).every(
+      ([p1, p2]) => p1.trim() && p2.trim()
+    );
     if (!isAllFilled) {
       alert('모든 포지션에 선수를 입력해주세요!');
       return;
@@ -75,7 +98,7 @@ const TeamDivider = () => {
     const newTeamB: Player[] = [];
 
     POSITIONS.forEach(position => {
-      const [player1, player2] = players[position];
+      const [player1, player2] = players[position].map(name => name.trim());
       if (Math.random() > 0.5) {
         newTeamA.push({ name: player1, position });
         newTeamB.push({ name: player2, position });
@@ -179,19 +202,26 @@ const TeamDivider = () => {
             )}
 
             {/* 기록 목록 */}
-            {showHistory && records.length > 0 && (
+            {showHistory && (
               <div className="mt-8">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="font-bold text-lg">팀 기록</h3>
-                  <Button 
-                    variant="destructive" 
-                    size="sm" 
-                    onClick={clearHistory}
-                    className="bg-red-500 hover:bg-red-600 text-white font-medium px-4 py-2 rounded-md shadow-sm"
-                  >
-                    기록 삭제
-                  </Button>
+                  {records.length > 0 && (
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={clearHistory}
+                      className="bg-red-500 hover:bg-red-600 text-white font-medium px-4 py-2 rounded-md shadow-sm"
+                    >
+                      기록 삭제
+                    </Button>
+                  )}
                 </div>
+                {records.length === 0 && (
+                  <p className="text-sm text-muted-foreground">
+                    아직 저장된 기록이 없습니다. 팀을 나누면 여기에 기록됩니다.
+                  </p>
+                )}
                 <div className="space-y-4">
                   {records.map((record) => (
                     <Card key={record.id} className="bg-gray-50">
