@@ -3,12 +3,12 @@ import { cn } from '@/lib/utils';
 
 // 팀마다 순서대로 입히는 색. 팀이 많아지면 처음부터 다시 돌려 쓴다.
 const TEAM_STYLES = [
-  { title: 'text-blue-600', item: 'bg-blue-50' },
-  { title: 'text-red-600', item: 'bg-red-50' },
-  { title: 'text-green-600', item: 'bg-green-50' },
-  { title: 'text-amber-600', item: 'bg-amber-50' },
-  { title: 'text-purple-600', item: 'bg-purple-50' },
-  { title: 'text-teal-600', item: 'bg-teal-50' }
+  { title: 'text-blue-600 dark:text-blue-400', item: 'bg-blue-50 dark:bg-blue-950/50' },
+  { title: 'text-red-600 dark:text-red-400', item: 'bg-red-50 dark:bg-red-950/50' },
+  { title: 'text-green-600 dark:text-green-400', item: 'bg-green-50 dark:bg-green-950/50' },
+  { title: 'text-amber-600 dark:text-amber-400', item: 'bg-amber-50 dark:bg-amber-950/50' },
+  { title: 'text-purple-600 dark:text-purple-400', item: 'bg-purple-50 dark:bg-purple-950/50' },
+  { title: 'text-teal-600 dark:text-teal-400', item: 'bg-teal-50 dark:bg-teal-950/50' }
 ];
 
 export interface TeamMember {

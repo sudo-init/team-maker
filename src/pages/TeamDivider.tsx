@@ -155,9 +155,9 @@ const TeamDivider = () => {
                 ) : (
                   <div className="space-y-4">
                     {records.map(record => (
-                      <Card key={record.id} className="bg-gray-50">
+                      <Card key={record.id} className="bg-muted/50">
                         <CardContent className="p-4">
-                          <div className="text-sm text-gray-500 mb-2">{record.date}</div>
+                          <div className="text-sm text-muted-foreground mb-2">{record.date}</div>
                           <MatchView match={record} compact />
                         </CardContent>
                       </Card>
