@@ -22,7 +22,7 @@ const KIND_OPTIONS: { value: ConstraintKind; label: string }[] = [
 
 // 네이티브 select에 Input과 같은 결의 스타일만 입힌다. 이것 하나 때문에 라이브러리를 늘리지 않는다.
 const SELECT_CLASS =
-  'h-9 min-w-0 flex-1 rounded-md border border-input bg-transparent px-2 text-sm shadow-xs outline-none disabled:cursor-not-allowed disabled:opacity-50 focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]';
+  'h-9 min-w-0 flex-1 basis-[7.5rem] rounded-md border border-input bg-transparent px-2 text-sm shadow-xs outline-none disabled:cursor-not-allowed disabled:opacity-50 focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]';
 
 interface ConstraintEditorProps {
   names: string[];
