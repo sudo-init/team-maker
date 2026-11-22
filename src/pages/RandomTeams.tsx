@@ -3,7 +3,9 @@ import { Shuffle, Users } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import TeamCard from '../components/TeamCard';
+import CopyButton from '../components/CopyButton';
 import { splitIntoTeams, type SplitResult } from '../lib/team';
+import { formatTeamsText } from '../lib/share';
 import {
   MIN_TEAM_COUNT,
   addNames,
@@ -136,16 +138,22 @@ const RandomTeams = () => {
             </div>
 
             {teams.length > 0 && (
-              <div className="grid gap-4 sm:grid-cols-2">
-                {teams.map((team, index) => (
-                  <TeamCard
-                    key={index}
-                    index={index}
-                    title={`${index + 1}팀 (${team.length}명)`}
-                    members={team.map(name => ({ key: name, name }))}
-                  />
-                ))}
-              </div>
+              <section aria-label="팀 결과" className="space-y-4">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-sm text-muted-foreground">{teams.length}팀으로 나눴어요.</p>
+                  <CopyButton getText={() => formatTeamsText(teams)} />
+                </div>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  {teams.map((team, index) => (
+                    <TeamCard
+                      key={index}
+                      index={index}
+                      title={`${index + 1}팀 (${team.length}명)`}
+                      members={team.map(name => ({ key: name, name }))}
+                    />
+                  ))}
+                </div>
+              </section>
             )}
           </div>
         </CardContent>

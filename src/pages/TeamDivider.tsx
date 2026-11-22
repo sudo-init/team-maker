@@ -4,6 +4,8 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import TeamCard, { type TeamMember } from '../components/TeamCard';
+import CopyButton from '../components/CopyButton';
+import { formatMatchText } from '../lib/share';
 import {
   MAX_RECORDS,
   POSITIONS,
@@ -127,7 +129,14 @@ const TeamDivider = () => {
               )}
             </div>
 
-            {match && <MatchView match={match} />}
+            {match && (
+              <section aria-label="팀 결과" className="space-y-4">
+                <div className="flex justify-end">
+                  <CopyButton getText={() => formatMatchText(match)} />
+                </div>
+                <MatchView match={match} />
+              </section>
+            )}
 
             {showHistory && (
               <div className="mt-8">
