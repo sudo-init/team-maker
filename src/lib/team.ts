@@ -6,7 +6,12 @@ export type SplitResult =
 
 // 조건이 서로 얽히면 탐색이 길어질 수 있어 안전장치를 둔다.
 // 사람이 수십 명 수준이면 실제로는 수백 단계 안에서 끝난다.
-const SEARCH_STEP_LIMIT = 200_000;
+const DEFAULT_SEARCH_STEP_LIMIT = 200_000;
+
+export interface SplitOptions {
+  /** 백트래킹 탐색 단계 상한. 테스트에서 한도 초과 상황을 만들 때만 바꾼다. */
+  stepLimit?: number;
+}
 
 /** Fisher-Yates 셔플. 원본 배열은 그대로 두고 섞인 새 배열을 돌려준다. */
 export function shuffle<T>(items: T[]): T[] {
@@ -43,7 +48,8 @@ export function parseNames(input: string): string[] {
 export function splitIntoTeams(
   names: string[],
   teamCount: number,
-  constraints: Constraints = EMPTY_CONSTRAINTS
+  constraints: Constraints = EMPTY_CONSTRAINTS,
+  { stepLimit = DEFAULT_SEARCH_STEP_LIMIT }: SplitOptions = {}
 ): SplitResult {
   if (teamCount < 2) {
     return { ok: false, reason: '팀은 2개 이상이어야 해요.' };
@@ -177,6 +183,8 @@ export function splitIntoTeams(
   const teamIndexes = Array.from({ length: teamCount }, (_, index) => index);
   let extraSlotsUsed = 0;
   let steps = 0;
+  // 한도에 걸려 멈춘 것과 정말 방법이 없는 것은 사용자에게 다르게 안내해야 한다.
+  let gaveUp = false;
 
   const canPlace = (group: number, team: number) => {
     const nextSize = sizes[team] + groups[group].length;
@@ -190,7 +198,11 @@ export function splitIntoTeams(
 
   const search = (step: number): boolean => {
     if (step === order.length) return true;
-    if (++steps > SEARCH_STEP_LIMIT) return false;
+    if (gaveUp) return false;
+    if (++steps > stepLimit) {
+      gaveUp = true;
+      return false;
+    }
 
     const group = order[step];
     const fixed = fixedTeam[group];
@@ -222,6 +234,13 @@ export function splitIntoTeams(
   };
 
   if (!search(0)) {
+    if (gaveUp) {
+      // 후보 순서를 매번 섞으므로 다시 돌리면 찾을 수도 있다.
+      return {
+        ok: false,
+        reason: '조건이 많아 팀 구성을 찾다가 멈췄어요. 다시 시도하거나 조건을 조금 줄여보세요.'
+      };
+    }
     return {
       ok: false,
       reason: '조건을 모두 만족하는 팀 구성을 찾지 못했어요. 조건을 줄이거나 팀 개수를 늘려보세요.'

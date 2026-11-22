@@ -323,6 +323,23 @@ describe('splitIntoTeams - 조건 조합', () => {
   });
 });
 
+describe('splitIntoTeams - 탐색 한도', () => {
+  it('한도에 걸려 멈추면 불가능과 다른 이유를 알려준다', () => {
+    const result = splitIntoTeams(ROSTER, 2, constraints(), { stepLimit: 3 });
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.reason).toContain('다시 시도');
+  });
+
+  it('정말 불가능하면 조건을 줄이라고 안내한다', () => {
+    const rule = constraints({
+      pairs: [pair('apart', '가', '나'), pair('apart', '나', '다'), pair('apart', '가', '다')]
+    });
+    const result = splitIntoTeams(['가', '나', '다', '라'], 2, rule);
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.reason).toContain('조건을 줄이거나');
+  });
+});
+
 describe('pruneConstraints', () => {
   it('빠진 사람이 낀 조건과 사라진 팀 고정을 걸러낸다', () => {
     const rule = constraints({
