@@ -1,13 +1,20 @@
 import { X } from 'lucide-react';
 import { Button } from '../../components/ui/button';
+import type { Scores } from '../../lib/balance';
+import ScoreInput from './ScoreInput';
 
 interface ParticipantListProps {
   names: string[];
   onRemove: (name: string) => void;
   onClear: () => void;
+  /** 넘기면 이름마다 점수 입력칸을 보여준다. */
+  scoring?: {
+    scores: Scores;
+    onChange: (name: string, score: number | null) => void;
+  };
 }
 
-const ParticipantList = ({ names, onRemove, onClear }: ParticipantListProps) => (
+const ParticipantList = ({ names, onRemove, onClear, scoring }: ParticipantListProps) => (
   <div className="space-y-2">
     <div className="flex items-center justify-between">
       <h3 className="font-bold">참가자 {names.length}명</h3>
@@ -26,9 +33,16 @@ const ParticipantList = ({ names, onRemove, onClear }: ParticipantListProps) => 
         {names.map(name => (
           <li
             key={name}
-            className="inline-flex items-center gap-1 rounded-full bg-secondary px-3 py-1 text-sm text-secondary-foreground"
+            className="inline-flex items-center gap-1.5 rounded-full bg-secondary px-3 py-1 text-sm text-secondary-foreground"
           >
             {name}
+            {scoring && (
+              <ScoreInput
+                name={name}
+                score={scoring.scores[name]}
+                onChange={score => scoring.onChange(name, score)}
+              />
+            )}
             <button
               type="button"
               aria-label={`${name} 삭제`}

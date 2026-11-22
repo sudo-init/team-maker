@@ -7,15 +7,22 @@ import {
   normalizeRoster,
   removeName,
   saveRoster,
+  setBalance,
   setRules,
+  setScore,
   setTeamCount,
   type Roster
 } from './roster';
 import { removeConstraint, upsertPair, upsertPin, type Constraints } from './constraints';
 import { parseStoredNames, readStored } from './storage';
 
-function roster(names: string[], teamCount = 2, rules: Constraints = { pairs: [], pins: [] }): Roster {
-  return { names, teamCount, rules };
+function roster(
+  names: string[],
+  teamCount = 2,
+  rules: Constraints = { pairs: [], pins: [] },
+  extra: Partial<Roster> = {}
+): Roster {
+  return { names, teamCount, rules, scores: {}, balance: false, ...extra };
 }
 
 const rulesFor = (...steps: ((c: Constraints) => Constraints)[]) =>
@@ -112,6 +119,28 @@ describe('조건 편집', () => {
   });
 });
 
+describe('점수와 균형 모드', () => {
+  it('점수를 매기고 지운다. 그대로면 같은 객체', () => {
+    const before = roster(['가', '나']);
+    const scored = setScore(before, '가', 7);
+    expect(scored.scores).toEqual({ 가: 7 });
+    expect(setScore(scored, '가', 7)).toBe(scored);
+    expect(setScore(scored, '가', null).scores).toEqual({});
+    expect(setScore(before, '없음', 3)).toBe(before);
+  });
+
+  it('사람이 빠지면 점수도 같이 지운다', () => {
+    const next = removeName(roster(['가', '나'], 2, undefined, { scores: { 가: 1, 나: 2 } }), '가');
+    expect(next.scores).toEqual({ 나: 2 });
+  });
+
+  it('균형 모드를 켜고 끈다', () => {
+    const before = roster(['가']);
+    expect(setBalance(before, false)).toBe(before);
+    expect(setBalance(before, true).balance).toBe(true);
+  });
+});
+
 describe('저장과 복원', () => {
   let store: Map<string, string>;
 
@@ -129,7 +158,10 @@ describe('저장과 복원', () => {
   });
 
   it('저장한 명단을 그대로 되살린다', () => {
-    const saved = roster(['가', '나', '다'], 3, rulesFor(pairOf('가', '나'), pinOf('다', 2)));
+    const saved = roster(['가', '나', '다'], 3, rulesFor(pairOf('가', '나'), pinOf('다', 2)), {
+      scores: { 가: 3, 다: 7.5 },
+      balance: true
+    });
     saveRoster(saved);
     expect(loadRoster()).toEqual(saved);
   });
@@ -143,9 +175,17 @@ describe('저장과 복원', () => {
   it('깨진 값은 지우고 기본값으로 시작한다', () => {
     store.set('randomTeamNames', '{not json');
     store.set('randomTeamConstraints', JSON.stringify('엉뚱한 값'));
+    store.set('randomTeamScores', JSON.stringify([1, 2]));
     expect(loadRoster()).toEqual(EMPTY_ROSTER);
     expect(store.has('randomTeamNames')).toBe(false);
     expect(store.has('randomTeamConstraints')).toBe(false);
+    expect(store.has('randomTeamScores')).toBe(false);
+  });
+
+  it('점수 중 이상한 값만 버린다', () => {
+    store.set('randomTeamNames', JSON.stringify(['가', '나', '다']));
+    store.set('randomTeamScores', JSON.stringify({ 가: 5, 나: '7', 다: -1, 없음: 3 }));
+    expect(loadRoster().scores).toEqual({ 가: 5 });
   });
 
   it('저장소 자체가 막혀 있어도 예외를 던지지 않는다', () => {

@@ -17,6 +17,8 @@ export interface TeamMember {
   name: string;
   /** 이름 왼쪽에 붙는 보조 정보(예: 포지션). */
   tag?: string;
+  /** 이름 오른쪽에 흐리게 붙는 보조 정보(예: 점수). */
+  detail?: string;
 }
 
 interface TeamCardProps {
@@ -48,6 +50,7 @@ const TeamCard = ({ index, title, members, compact = false }: TeamCardProps) => 
           >
             {member.tag && <span className="font-medium">{member.tag}</span>}
             <span>{member.name}</span>
+            {member.detail && <span className="text-muted-foreground">{member.detail}</span>}
           </li>
         ))}
       </ul>

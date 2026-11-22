@@ -5,7 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import TeamCard from '../components/TeamCard';
 import CopyButton from '../components/CopyButton';
 import { splitIntoTeams, type SplitResult } from '../lib/team';
-import { formatTeamsText } from '../lib/share';
+import { balanceTeams, resolveScores, scoreSpread, teamAverages } from '../lib/balance';
+import { formatScore, formatTeamsText } from '../lib/share';
 import {
   MIN_TEAM_COUNT,
   addNames,
@@ -14,7 +15,9 @@ import {
   maxTeamCount,
   removeName,
   saveRoster,
+  setBalance,
   setRules,
+  setScore,
   setTeamCount,
   type Roster
 } from '../lib/roster';
@@ -22,6 +25,7 @@ import NameInput from './random/NameInput';
 import ParticipantList from './random/ParticipantList';
 import TeamCountStepper from './random/TeamCountStepper';
 import ConstraintEditor from './random/ConstraintEditor';
+import BalanceToggle from './random/BalanceToggle';
 
 /** 팀 짜기 결과와, 그 결과를 만든 입력. */
 interface Outcome {
@@ -45,7 +49,12 @@ const RandomTeams = () => {
   // 지우는 곳을 하나만 빠뜨려도 낡은 결과가 남았다.
   const result = outcome?.roster === roster ? outcome.result : null;
   const teams = result?.ok ? result.teams : [];
-  const { names, teamCount, rules } = roster;
+  const { names, teamCount, rules, scores, balance } = roster;
+
+  // 균형 모드로 만든 결과면 팀별 평균 점수를 함께 보여준다.
+  const scoreOf = resolveScores(names, scores);
+  const averages = balance && teams.length > 0 ? teamAverages(teams, scoreOf) : undefined;
+  const unscored = names.filter(name => scores[name] === undefined).length;
 
   const handleAddNames = (candidates: string[]) => {
     if (candidates.length === 0) {
@@ -78,7 +87,10 @@ const RandomTeams = () => {
   };
 
   const makeTeams = () => {
-    setOutcome({ roster, result: splitIntoTeams(names, teamCount, rules) });
+    const result = balance
+      ? balanceTeams(names, teamCount, rules, scores)
+      : splitIntoTeams(names, teamCount, rules);
+    setOutcome({ roster, result });
   };
 
   const notEnoughPeople = names.length < teamCount;
@@ -100,6 +112,14 @@ const RandomTeams = () => {
               names={names}
               onRemove={handleRemoveName}
               onClear={handleClearNames}
+              scoring={
+                balance
+                  ? {
+                      scores,
+                      onChange: (name, score) => setRoster(setScore(roster, name, score))
+                    }
+                  : undefined
+              }
             />
 
             <TeamCountStepper
@@ -107,6 +127,12 @@ const RandomTeams = () => {
               min={MIN_TEAM_COUNT}
               max={maxTeamCount(names)}
               onChange={handleTeamCount}
+            />
+
+            <BalanceToggle
+              enabled={balance}
+              onChange={enabled => setRoster(setBalance(roster, enabled))}
+              unscored={unscored}
             />
 
             <ConstraintEditor
@@ -140,16 +166,27 @@ const RandomTeams = () => {
             {teams.length > 0 && (
               <section aria-label="팀 결과" className="space-y-4">
                 <div className="flex items-center justify-between gap-2">
-                  <p className="text-sm text-muted-foreground">{teams.length}팀으로 나눴어요.</p>
-                  <CopyButton getText={() => formatTeamsText(teams)} />
+                  <p className="text-sm text-muted-foreground">
+                    {averages
+                      ? `팀 간 평균 점수 차이 ${formatScore(scoreSpread(teams, scoreOf))}`
+                      : `${teams.length}팀으로 나눴어요.`}
+                  </p>
+                  <CopyButton getText={() => formatTeamsText(teams, averages)} />
                 </div>
                 <div className="grid gap-4 sm:grid-cols-2">
                   {teams.map((team, index) => (
                     <TeamCard
                       key={index}
                       index={index}
-                      title={`${index + 1}팀 (${team.length}명)`}
-                      members={team.map(name => ({ key: name, name }))}
+                      title={`${index + 1}팀 (${team.length}명${
+                        averages ? ` · 평균 ${formatScore(averages[index])}` : ''
+                      })`}
+                      members={team.map(name => ({
+                        key: name,
+                        name,
+                        detail:
+                          balance && scores[name] !== undefined ? formatScore(scores[name]) : undefined
+                      }))}
                     />
                   ))}
                 </div>
