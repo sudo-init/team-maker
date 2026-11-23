@@ -30,7 +30,7 @@ export function shuffle<T>(items: T[]): T[] {
  */
 export function parseNames(input: string): string[] {
   return input
-    .split(/[,\n]/)
+    .split(/[,\r\n]/)
     .map(name => name.trim())
     .filter(Boolean);
 }

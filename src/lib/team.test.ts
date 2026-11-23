@@ -49,6 +49,10 @@ describe('parseNames', () => {
     expect(parseNames('가\r\n나,,  ,\n다')).toEqual(['가', '나', '다']);
   });
 
+  it('\\r만 쓰는 줄바꿈도 나눈다', () => {
+    expect(parseNames('가\r나\r다')).toEqual(['가', '나', '다']);
+  });
+
   it('내용이 없으면 빈 배열', () => {
     expect(parseNames('  ,\n , ')).toEqual([]);
   });

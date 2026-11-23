@@ -56,8 +56,13 @@ const RandomTeams = () => {
   const [nameNotice, setNameNotice] = useState('');
   const [ruleNotice, setRuleNotice] = useState('');
   // 조건은 쓰지 않는 사람이 더 많다. 걸린 조건이 없으면 접어두고, 필요할 때 연다.
-  const [rulesOpen, setRulesOpen] = useState(false);
+  // 저장된 조건이 있어 펼친 채 시작했다면 열린 상태로 기억한다. 그래야 마지막 조건을 지우는
+  // 순간 편집기가 접히며 누르던 버튼과 고르던 값이 사라지지 않는다.
+  const [rulesOpen, setRulesOpen] = useState(
+    () => roster.rules.pairs.length + roster.rules.pins.length > 0
+  );
   const resultHeadingRef = useRef<HTMLHeadingElement>(null);
+  const failureRef = useRef<HTMLDivElement>(null);
 
   // 저장은 명단이 바뀔 때 한곳에서만 한다.
   useEffect(() => saveRoster(roster), [roster]);
@@ -77,15 +82,16 @@ const RandomTeams = () => {
   const averages = balance && teams.length > 0 ? teamAverages(teams, scoreOf) : undefined;
   const unscored = names.filter(name => scores[name] === undefined).length;
 
-  // 새 결과가 나오면 결과가 화면 밖에 있을 때만 그쪽으로 데려간다. 이미 보이면 그대로 둬서
-  // 연달아 "다시 섞기"를 누르는 흐름을 끊지 않는다.
+  // 새 결과(또는 실패 이유)가 나오면 화면 밖에 있을 때만 그쪽으로 데려간다. 이미 보이면 그대로 둬서
+  // 연달아 "다시 섞기"를 누르는 흐름을 끊지 않는다. 휴대폰에서는 버튼이 화면 아래에 고정돼 있어
+  // 이렇게 하지 않으면 실패 이유가 화면 밖에 떠서 눌러도 아무 일 없는 것처럼 보인다.
   useEffect(() => {
-    if (!outcome?.result.ok) return;
-    const heading = resultHeadingRef.current;
-    if (!heading) return;
-    const { top } = heading.getBoundingClientRect();
+    if (!outcome) return;
+    const target = outcome.result.ok ? resultHeadingRef.current : failureRef.current;
+    if (!target) return;
+    const { top } = target.getBoundingClientRect();
     if (top < 0 || top > window.innerHeight * 0.6) {
-      heading.scrollIntoView({ behavior: prefersReducedMotion() ? 'auto' : 'smooth', block: 'start' });
+      target.scrollIntoView({ behavior: prefersReducedMotion() ? 'auto' : 'smooth', block: 'start' });
     }
   }, [outcome]);
 
@@ -260,8 +266,9 @@ const RandomTeams = () => {
       {/* 조건이 서로 부딪혀 팀을 못 만든 이유. */}
       {result && !result.ok && (
         <div
+          ref={failureRef}
           role="alert"
-          className="flex gap-3 rounded-xl border border-destructive/30 bg-destructive/8 p-4 text-sm"
+          className="flex scroll-mt-20 gap-3 rounded-xl border border-destructive/30 bg-destructive/8 p-4 text-sm"
         >
           <AlertTriangle aria-hidden className="mt-0.5 size-4 shrink-0 text-destructive" />
           <div className="space-y-1">
@@ -283,7 +290,7 @@ const RandomTeams = () => {
               <h2
                 id="result-heading"
                 ref={resultHeadingRef}
-                className="font-display text-2xl font-extrabold tracking-tight"
+                className="scroll-mt-20 font-display text-2xl font-extrabold tracking-tight"
               >
                 결과
               </h2>
