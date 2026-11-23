@@ -33,7 +33,7 @@ const ScoreInput = ({ name, score, onChange }: ScoreInputProps) => {
         onChange(parseScore(e.target.value));
       }}
       className={cn(
-        'h-6 w-14 rounded border border-input bg-background px-1 text-center text-xs outline-none focus-visible:ring-2 focus-visible:ring-ring/50',
+        'h-8 w-20 rounded-md border border-input bg-background px-2 text-right text-base sm:text-sm tabular-nums outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none',
         invalid && 'border-destructive'
       )}
     />

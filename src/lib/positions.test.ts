@@ -92,6 +92,13 @@ describe('parseStoredRecords', () => {
     expect(parsed).toEqual([good]);
   });
 
+  it('만든 시각이 없는 예전 기록도 살리고, 시각이 숫자가 아니면 버린다', () => {
+    const { createdAt, ...legacy } = record();
+    expect(typeof createdAt).toBe('number');
+    expect(parseStoredRecords([legacy])).toEqual([legacy]);
+    expect(parseStoredRecords([{ ...legacy, createdAt: 'yesterday' }])).toEqual([]);
+  });
+
   it('id가 겹치면 앞의 것만 남기고 최대 개수를 지킨다', () => {
     const good = record();
     expect(parseStoredRecords([good, good])).toHaveLength(1);

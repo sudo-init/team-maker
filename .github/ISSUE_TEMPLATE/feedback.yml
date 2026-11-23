@@ -1,0 +1,20 @@
+# 앱의 "피드백" 버튼이 이 양식을 열고 message·diagnostics 칸을 미리 채운다.
+# 칸 id를 바꾸면 src/lib/feedback.ts의 buildIssueUrl도 같이 바꿔야 한다.
+name: 피드백
+description: Team Maker를 쓰며 불편했던 점이나 바라는 점을 알려주세요.
+title: "[피드백] "
+labels: ["feedback"]
+body:
+  - type: textarea
+    id: message
+    attributes:
+      label: 내용
+      description: 무엇이 불편했는지, 어떤 기능이 있으면 좋을지 자유롭게 적어주세요.
+    validations:
+      required: true
+  - type: textarea
+    id: diagnostics
+    attributes:
+      label: 사용 환경
+      description: 앱이 자동으로 채운 정보예요. 지워도 괜찮아요.
+      render: text
