@@ -6,8 +6,8 @@
     <!-- viewport-fit=cover: 모바일 하단 고정 바가 홈 표시줄 영역(safe-area)을 알 수 있게 한다. -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="description" content="모임·스터디·게임 내전에서 쓰는 팀 나누기. 조건·실력 균형까지 맞춰 랜덤으로 팀을 짜요." />
-    <meta name="theme-color" content="#faf8f5" media="(prefers-color-scheme: light)" />
-    <meta name="theme-color" content="#1c1a18" media="(prefers-color-scheme: dark)" />
+    <!-- 휴대폰 주소창 색. 앱에서 고른 화면 모드를 따르도록 아래 스크립트와 theme.ts가 바꾼다. -->
+    <meta name="theme-color" content="#faf8f5" />
     <title>Team Maker</title>
     <!-- 본문: Pretendard(쓰는 글자 범위만 받는 dynamic subset). 숫자·로고: Bricolage Grotesque. -->
     <link
@@ -33,6 +33,7 @@
           (preference !== 'light' && window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches);
         document.documentElement.classList.toggle('dark', dark);
         document.documentElement.style.colorScheme = dark ? 'dark' : 'light';
+        document.querySelector('meta[name="theme-color"]').setAttribute('content', dark ? '#1c1a18' : '#faf8f5');
       })();
     </script>
   </head>
