@@ -1,4 +1,4 @@
-import { useState, type KeyboardEvent } from 'react';
+import { useState, type ClipboardEvent, type KeyboardEvent } from 'react';
 import { Plus } from 'lucide-react';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
@@ -25,6 +25,15 @@ const NameInput = ({ onAdd, notice }: NameInputProps) => {
     submit();
   };
 
+  // 한 줄 입력칸은 붙여넣은 줄바꿈을 공백으로 바꿔버린다. 메신저에서 한 줄에 한 명씩 복사한
+  // 명단이 "철수 영희 민수" 한 명이 되지 않도록, 줄바꿈이 있으면 입력칸을 거치지 않고 바로 추가한다.
+  const handlePaste = (event: ClipboardEvent<HTMLInputElement>) => {
+    const text = event.clipboardData.getData('text');
+    if (!/[\r\n]/.test(text)) return;
+    event.preventDefault();
+    onAdd(parseNames(text));
+  };
+
   return (
     <div className="space-y-2">
       <div className="flex gap-2">
@@ -34,6 +43,7 @@ const NameInput = ({ onAdd, notice }: NameInputProps) => {
           value={value}
           onChange={e => setValue(e.target.value)}
           onKeyDown={handleKeyDown}
+          onPaste={handlePaste}
         />
         <Button onClick={submit}>
           <Plus className="h-4 w-4" />
