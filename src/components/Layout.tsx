@@ -1,6 +1,8 @@
 import { NavLink, Outlet } from 'react-router-dom';
 import { cn } from '@/lib/utils';
+import { APP_VERSION } from '@/lib/config';
 import ThemeToggle from './ThemeToggle';
+import FeedbackDialog from './FeedbackDialog';
 
 const NAV_ITEMS = [
   { to: '/', label: '포지션별' },
@@ -59,6 +61,7 @@ const Layout = () => {
           </nav>
 
           <div className="flex items-center">
+            <FeedbackDialog />
             <ThemeToggle />
           </div>
         </div>
@@ -71,6 +74,7 @@ const Layout = () => {
       <footer className="border-t">
         <div className="mx-auto max-w-3xl px-4 py-6 text-xs text-muted-foreground">
           입력한 명단과 설정은 이 브라우저에만 저장돼요. 서버로 보내지 않아요.
+          <span className="ml-1 tabular-nums opacity-70">v.{APP_VERSION}</span>
         </div>
       </footer>
     </div>

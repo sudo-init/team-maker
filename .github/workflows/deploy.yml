@@ -27,6 +27,10 @@ jobs:
         run: npm test
       - name: Build
         run: npm run build
+        env:
+          # 피드백 수신 서버 주소. 저장소 Settings → Secrets and variables → Actions → Variables에
+          # FEEDBACK_ENDPOINT를 등록하면 앱 안에서 바로 보내고, 없으면 GitHub 이슈로 받는다.
+          VITE_FEEDBACK_ENDPOINT: ${{ vars.FEEDBACK_ENDPOINT }}
       # GitHub Pages는 SPA 폴백을 지원하지 않는다. 404.html을 index.html과
       # 동일하게 두면 하위 경로로 직접 접속하거나 새로고침해도 앱이 뜬다.
       - name: Add SPA fallback
