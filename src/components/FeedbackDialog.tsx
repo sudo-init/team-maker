@@ -43,10 +43,12 @@ function collectDiagnostics(): FeedbackDiagnostics {
 }
 
 type Status =
-  /** offerGitHub: 수신 서버로 보내지 못했을 때만 GitHub로 남기는 길을 함께 보여준다. */
-  | { kind: 'editing'; error: string; offerGitHub?: boolean }
+  /** issueUrl: 보내지 못했을 때 대신 누를 수 있는 GitHub 이슈 작성 링크. */
+  | { kind: 'editing'; error: string; issueUrl?: string }
   | { kind: 'sending' }
-  | { kind: 'sent'; via: 'endpoint' | 'github'; truncated: boolean };
+  | { kind: 'sent'; via: 'endpoint' }
+  /** truncated: 주소에 내용을 다 담지 못함. copied: 그때 전체 내용을 클립보드에 복사했는지. */
+  | { kind: 'sent'; via: 'github'; truncated: boolean; copied: boolean };
 
 const EDITING: Status = { kind: 'editing', error: '' };
 
@@ -73,20 +75,29 @@ const FeedbackDialog = () => {
     if (status.kind === 'editing' && status.error) setStatus(EDITING);
   };
 
+  // 보낸 뒤에는 다음에 열 때 다시 쓰는 화면으로 돌아간다. 쓰던 내용은 수신 서버가 받았다고 확인한
+  // 경우에만 지운다. GitHub로 넘긴 경우는 실제로 제출했는지 알 수 없어서 남겨둔다(다시 열어 복사할 수 있게).
+  const settle = () => {
+    if (status.kind !== 'sent') return;
+    if (status.via === 'endpoint') {
+      setMessage('');
+      setContact('');
+      setConsent(false);
+    }
+    setStatus(EDITING);
+  };
+
   const open = () => {
+    settle();
     setDiagnostics(collectDiagnostics());
     dialogRef.current?.showModal();
   };
 
-  const close = () => dialogRef.current?.close();
+  const sending = status.kind === 'sending';
 
-  // 보낸 뒤 닫으면 다음에 열 때 새로 쓰게 한다. 보내기 전에 닫으면 쓰던 내용을 남겨둔다.
-  const handleClosed = () => {
-    if (status.kind !== 'sent') return;
-    setMessage('');
-    setContact('');
-    setConsent(false);
-    setStatus(EDITING);
+  // 보내는 중에 닫으면 결과를 알릴 곳이 없어진다. 응답이 올 때까지(최대 10초) 닫지 못하게 한다.
+  const close = () => {
+    if (!sending) dialogRef.current?.close();
   };
 
   const submit = async (event: FormEvent) => {
@@ -106,10 +117,21 @@ const FeedbackDialog = () => {
 
     if (!SENDS_DIRECTLY) {
       const { url, truncated } = buildIssueUrl(REPO_URL, payload);
-      // 주소에 다 담지 못했으면 전체 내용을 복사해 두어 붙여넣을 수 있게 한다.
-      if (truncated) await copyText(payload.message);
-      window.open(url, '_blank', 'noopener,noreferrer');
-      setStatus({ kind: 'sent', via: 'github', truncated });
+      // 브라우저는 클릭 처리 중에 바로 연 창만 허용한다. await를 거친 뒤에 열면 팝업으로 막힌다.
+      // 그래서 복사(주소에 다 담지 못했을 때 전체 내용을 붙여넣을 수 있게)도 창을 열기 전에 시작만 해둔다.
+      const copying = truncated ? copyText(payload.message) : Promise.resolve(true);
+      // noopener를 주면 성공해도 null이 돌아와 막혔는지 알 수 없다. 대신 열린 뒤 바로 연결을 끊는다.
+      const popup = window.open(url, '_blank');
+      if (!popup) {
+        setStatus({
+          kind: 'editing',
+          error: '새 창이 막혀서 GitHub를 열지 못했어요. 아래 링크를 눌러 이어서 보내주세요.',
+          issueUrl: url
+        });
+        return;
+      }
+      popup.opener = null;
+      setStatus({ kind: 'sent', via: 'github', truncated, copied: await copying });
       return;
     }
 
@@ -118,7 +140,7 @@ const FeedbackDialog = () => {
       return;
     }
     if (honeypot) {
-      setStatus({ kind: 'sent', via: 'endpoint', truncated: false });
+      setStatus({ kind: 'sent', via: 'endpoint' });
       return;
     }
 
@@ -126,21 +148,19 @@ const FeedbackDialog = () => {
     const ok = await postFeedback(FEEDBACK_ENDPOINT, payload);
     if (ok) {
       lastSentAt.current = Date.now();
-      setStatus({ kind: 'sent', via: 'endpoint', truncated: false });
+      setStatus({ kind: 'sent', via: 'endpoint' });
     } else {
       setStatus({
         kind: 'editing',
         error: '지금은 보내지 못했어요. 잠시 후 다시 보내거나 GitHub에 남겨주세요.',
-        offerGitHub: true
+        // GitHub 이슈는 공개라 연락처는 빼고 넘긴다.
+        issueUrl: buildIssueUrl(REPO_URL, buildPayload({ ...draft, contact: '' }, null)).url
       });
     }
   };
 
   const error = status.kind === 'editing' ? status.error : '';
-  const fallbackUrl =
-    status.kind === 'editing' && status.offerGitHub
-      ? buildIssueUrl(REPO_URL, buildPayload({ category, message, contact: '' }, null)).url
-      : '';
+  const fallbackUrl = status.kind === 'editing' ? status.issueUrl : undefined;
 
   return (
     <>
@@ -152,7 +172,10 @@ const FeedbackDialog = () => {
       <dialog
         ref={dialogRef}
         aria-labelledby={titleId}
-        onClose={handleClosed}
+        onCancel={event => {
+          // Esc로 닫기. 보내는 중이면 막는다.
+          if (sending) event.preventDefault();
+        }}
         // 바깥 어두운 곳을 누르면 닫는다. 대화상자 안쪽 클릭은 target이 안쪽 요소다.
         onClick={event => {
           if (event.target === event.currentTarget) close();
@@ -169,7 +192,14 @@ const FeedbackDialog = () => {
                 불편했던 점, 있었으면 하는 기능을 알려주세요. 하나하나 읽고 다음 개선에 반영해요.
               </p>
             </div>
-            <Button variant="ghost" size="icon" onClick={close} aria-label="닫기" className="-mt-1 -mr-2 shrink-0">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={close}
+              disabled={sending}
+              aria-label="닫기"
+              className="-mt-1 -mr-2 shrink-0"
+            >
               <X />
             </Button>
           </div>
@@ -190,7 +220,10 @@ const FeedbackDialog = () => {
                     <p className="font-semibold">GitHub 창에서 마무리해주세요</p>
                     <p className="text-sm text-muted-foreground">
                       새 창의 내용을 확인하고 <b>Create</b>를 누르면 접수돼요.
-                      {status.truncated && ' 내용이 길어 일부만 채워졌어요. 전체 내용은 복사해 두었으니 붙여넣어 주세요.'}
+                      {status.truncated &&
+                        (status.copied
+                          ? ' 내용이 길어 일부만 채워졌어요. 전체 내용을 복사해 두었으니 붙여넣어 주세요.'
+                          : ' 내용이 길어 일부만 채워졌어요. 피드백 창을 다시 열면 쓰던 내용이 남아 있으니 나머지를 복사해 붙여넣어 주세요.')}
                     </p>
                   </>
                 )}
@@ -314,8 +347,8 @@ const FeedbackDialog = () => {
               )}
 
               <div className="space-y-2">
-                <Button type="submit" size="lg" className="w-full" disabled={status.kind === 'sending'}>
-                  {status.kind === 'sending' ? (
+                <Button type="submit" size="lg" className="w-full" disabled={sending}>
+                  {sending ? (
                     '보내는 중…'
                   ) : SENDS_DIRECTLY ? (
                     '보내기'

@@ -18,7 +18,9 @@ function copyWithTextarea(text: string): boolean {
   textarea.setAttribute('readonly', '');
   textarea.style.position = 'fixed';
   textarea.style.opacity = '0';
-  document.body.appendChild(textarea);
+  // 모달 대화상자가 열려 있으면 바깥은 비활성(inert)이라 선택·복사가 되지 않는다. 그 안에 붙인다.
+  const host = document.querySelector('dialog[open]') ?? document.body;
+  host.appendChild(textarea);
   textarea.select();
   try {
     return document.execCommand('copy');
