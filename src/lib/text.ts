@@ -2,19 +2,28 @@ const HANGUL_START = 0xac00;
 const HANGUL_END = 0xd7a3;
 
 /**
- * 단어 끝 받침에 맞는 조사를 고른다. pair는 "와/과"처럼 두 형태를 슬래시로 잇는다.
- * 순서는 상관없다. 받침 없는 쪽(와·는·를)과 있는 쪽(과·은·을)을 알아서 가른다.
- * 한글로 끝나지 않아 판단할 수 없으면 넘긴 순서대로 "와(과)"처럼 둘 다 보여준다.
+ * 받침 유무로 갈리는 조사 쌍과, 각각 [받침 있을 때, 받침 없을 때] 형태.
+ * 지원하는 쌍만 받는다. "으로/로"처럼 ㄹ 받침 예외가 있는 조사는 규칙이 달라 넣지 않았다.
  */
-export function josa(word: string, pair: `${string}/${string}`): string {
-  const [first, second] = pair.split('/');
-  const [withoutFinal, withFinal] = ['와', '는', '를'].includes(first)
-    ? [first, second]
-    : [second, first];
+const JOSA_FORMS = {
+  '와/과': ['과', '와'],
+  '은/는': ['은', '는'],
+  '을/를': ['을', '를'],
+  '이/가': ['이', '가']
+} as const;
 
+export type JosaPair = keyof typeof JOSA_FORMS;
+
+/**
+ * 단어 끝 받침에 맞는 조사를 고른다. 예: josa('민준', '와/과') → '과'
+ * 한글로 끝나지 않아 판단할 수 없으면 "와(과)"처럼 둘 다 보여준다.
+ */
+export function josa(word: string, pair: JosaPair): string {
+  const [withFinal, withoutFinal] = JOSA_FORMS[pair];
   const trimmed = word.trim();
   const code = trimmed.codePointAt(trimmed.length - 1) ?? 0;
   if (code < HANGUL_START || code > HANGUL_END) {
+    const [first, second] = pair.split('/');
     return `${first}(${second})`;
   }
   const hasFinal = (code - HANGUL_START) % 28 !== 0;
