@@ -5,7 +5,7 @@ import { Input } from '../../components/ui/input';
 import { parseNames } from '../../lib/team';
 
 interface NameInputProps {
-  /** 입력창 내용을 이름 목록으로 나눠 넘긴다. 비어 있으면 빈 배열이다. */
+  /** 입력한 내용을 이름 목록으로 나눠 넘긴다. 비어 있으면 빈 배열이다. */
   onAdd: (candidates: string[]) => void;
   notice: string;
 }
@@ -38,19 +38,24 @@ const NameInput = ({ onAdd, notice }: NameInputProps) => {
     <div className="space-y-2">
       <div className="flex gap-2">
         <Input
-          placeholder="이름 입력 (쉼표로 여러 명 한 번에)"
+          placeholder="이름 입력 — 쉼표나 줄바꿈으로 여러 명"
           aria-label="추가할 이름"
+          aria-describedby="name-input-hint"
+          enterKeyHint="done"
+          autoComplete="off"
           value={value}
           onChange={e => setValue(e.target.value)}
           onKeyDown={handleKeyDown}
           onPaste={handlePaste}
         />
-        <Button onClick={submit}>
-          <Plus className="h-4 w-4" />
+        <Button onClick={submit} variant="secondary" className="shrink-0">
+          <Plus />
           추가
         </Button>
       </div>
-      {notice && <p className="text-sm text-muted-foreground">{notice}</p>}
+      <p id="name-input-hint" className="text-xs text-muted-foreground" aria-live="polite">
+        {notice || '단톡방 명단을 그대로 붙여넣어도 한 명씩 나눠 넣어요.'}
+      </p>
     </div>
   );
 };

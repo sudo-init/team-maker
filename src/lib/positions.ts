@@ -69,13 +69,15 @@ export interface TeamRecord extends PositionMatch {
   id: string;
   /** 사람이 읽는 시각 문자열. 예전 기록과 모양을 맞추려고 저장 시점에 만들어 둔다. */
   date: string;
+  /** 만든 시각(ms). "3분 전"처럼 보여주는 데 쓴다. 이 값이 생기기 전의 기록에는 없다. */
+  createdAt?: number;
 }
 
 // localStorage 용량 초과를 막기 위해 최근 기록만 남긴다.
 export const MAX_RECORDS = 50;
 
 export function createRecord(match: PositionMatch, now = new Date()): TeamRecord {
-  return { id: createId('r'), date: now.toLocaleString(), ...match };
+  return { id: createId('r'), date: now.toLocaleString(), createdAt: now.getTime(), ...match };
 }
 
 function isPlayer(value: unknown): value is Player {
@@ -97,6 +99,7 @@ function isRecord(value: unknown): value is TeamRecord {
   return (
     typeof record.id === 'string' &&
     typeof record.date === 'string' &&
+    (record.createdAt === undefined || Number.isFinite(record.createdAt)) &&
     isTeam(record.teamA) &&
     isTeam(record.teamB)
   );

@@ -2,53 +2,62 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/*
+ * 컨셉: 작전판. 따뜻한 종이색 바탕에 옅은 점 격자, 강조색은 신호 주황 하나만 쓴다.
+ * 팀 색(파랑·빨강…)은 TeamCard에만 있다. 주 버튼 색과 팀 색이 서로 다투지 않게 한다.
+ */
 :root {
-  --radius: 0.625rem;
+  --radius: 0.75rem;
 
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.129 0.042 264.695);
+  --background: oklch(0.982 0.005 80);
+  --foreground: oklch(0.22 0.012 60);
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.129 0.042 264.695);
+  --card-foreground: oklch(0.22 0.012 60);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.129 0.042 264.695);
-  --primary: oklch(0.208 0.042 265.755);
-  --primary-foreground: oklch(0.984 0.003 247.858);
-  --secondary: oklch(0.968 0.007 247.896);
-  --secondary-foreground: oklch(0.208 0.042 265.755);
-  --muted: oklch(0.968 0.007 247.896);
-  --muted-foreground: oklch(0.554 0.046 257.417);
-  --accent: oklch(0.968 0.007 247.896);
-  --accent-foreground: oklch(0.208 0.042 265.755);
-  --destructive: oklch(0.577 0.245 27.325);
-  --destructive-foreground: oklch(0.984 0.003 247.858);
-  --border: oklch(0.929 0.013 255.508);
-  --input: oklch(0.929 0.013 255.508);
-  --ring: oklch(0.704 0.04 256.788);
+  --popover-foreground: oklch(0.22 0.012 60);
+  --primary: oklch(0.57 0.19 37);
+  --primary-foreground: oklch(0.99 0.005 80);
+  --secondary: oklch(0.948 0.008 75);
+  --secondary-foreground: oklch(0.26 0.012 60);
+  --muted: oklch(0.955 0.007 75);
+  --muted-foreground: oklch(0.47 0.014 60);
+  --accent: oklch(0.94 0.012 70);
+  --accent-foreground: oklch(0.22 0.012 60);
+  --destructive: oklch(0.55 0.21 25);
+  --destructive-foreground: oklch(0.99 0.005 80);
+  --border: oklch(0.9 0.01 75);
+  --input: oklch(0.87 0.012 75);
+  --ring: oklch(0.62 0.17 40);
+  --dot: oklch(0.3 0.02 60 / 9%);
 }
 
 .dark {
-  --background: oklch(0.129 0.042 264.695);
-  --foreground: oklch(0.984 0.003 247.858);
-  --card: oklch(0.208 0.042 265.755);
-  --card-foreground: oklch(0.984 0.003 247.858);
-  --popover: oklch(0.208 0.042 265.755);
-  --popover-foreground: oklch(0.984 0.003 247.858);
-  --primary: oklch(0.929 0.013 255.508);
-  --primary-foreground: oklch(0.208 0.042 265.755);
-  --secondary: oklch(0.279 0.041 260.031);
-  --secondary-foreground: oklch(0.984 0.003 247.858);
-  --muted: oklch(0.279 0.041 260.031);
-  --muted-foreground: oklch(0.704 0.04 256.788);
-  --accent: oklch(0.279 0.041 260.031);
-  --accent-foreground: oklch(0.984 0.003 247.858);
-  --destructive: oklch(0.704 0.191 22.216);
-  --destructive-foreground: oklch(0.984 0.003 247.858);
+  --background: oklch(0.18 0.008 60);
+  --foreground: oklch(0.95 0.006 80);
+  --card: oklch(0.215 0.009 60);
+  --card-foreground: oklch(0.95 0.006 80);
+  --popover: oklch(0.215 0.009 60);
+  --popover-foreground: oklch(0.95 0.006 80);
+  --primary: oklch(0.75 0.15 52);
+  --primary-foreground: oklch(0.2 0.03 45);
+  --secondary: oklch(0.27 0.01 60);
+  --secondary-foreground: oklch(0.95 0.006 80);
+  --muted: oklch(0.25 0.009 60);
+  --muted-foreground: oklch(0.72 0.012 70);
+  --accent: oklch(0.28 0.012 60);
+  --accent-foreground: oklch(0.95 0.006 80);
+  --destructive: oklch(0.7 0.18 25);
+  --destructive-foreground: oklch(0.2 0.03 25);
   --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.551 0.027 264.364);
+  --input: oklch(1 0 0 / 16%);
+  --ring: oklch(0.72 0.13 52);
+  --dot: oklch(1 0 0 / 6%);
 }
 
 @theme inline {
+  --font-sans: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, system-ui, "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", sans-serif;
+  --font-display: "Bricolage Grotesque", "Pretendard Variable", Pretendard, system-ui, sans-serif;
+
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
@@ -73,13 +82,82 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
+
+  --animate-rise: rise 360ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  --animate-tumble: tumble 420ms cubic-bezier(0.3, 0.7, 0.2, 1);
+}
+
+/* 결과 카드가 아래에서 떠오르며 나타난다. 지연은 카드마다 style로 준다. */
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* 섞기 버튼 아이콘이 한 바퀴 구른다. */
+@keyframes tumble {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* 동작 줄이기 설정이면 움직임 대신 짧은 페이드만 남긴다. 애니메이션을 아예 끄지는 않는다. */
+@media (prefers-reduced-motion: reduce) {
+  .animate-rise {
+    animation: fade 120ms ease-out both !important;
+    animation-delay: 0ms !important;
+  }
+  .animate-tumble {
+    animation: none !important;
+  }
+}
+
+/* 휴대폰에서 하단 고정 바(ActionBar)가 있는 화면은 맨 아래 내용이 바에 가리지 않게 여백을 둔다. */
+@media (width < 40rem) {
+  body:has([data-action-bar]) {
+    padding-bottom: 7rem;
+  }
 }
 
 @layer base {
   * {
     @apply border-border outline-ring/50;
   }
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground antialiased;
+    /* 작전판 점 격자. 화면에 고정해 스크롤해도 종이가 움직이지 않는 느낌을 준다. */
+    background-image: radial-gradient(var(--dot) 1px, transparent 1px);
+    background-size: 22px 22px;
+    background-attachment: fixed;
+    line-height: 1.6;
+    /* 한글이 어절 중간에서 줄바꿈되지 않게 한다. */
+    word-break: keep-all;
+    overflow-wrap: anywhere;
+  }
+  h1,
+  h2,
+  h3,
+  h4 {
+    text-wrap: balance;
   }
 }
