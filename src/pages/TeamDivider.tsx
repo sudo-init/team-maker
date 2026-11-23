@@ -1,133 +1,82 @@
-import { useState, ChangeEvent, useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { Dice1, History } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
-import { Dice1, History } from 'lucide-react';
+import TeamCard, { type TeamMember } from '../components/TeamCard';
+import CopyButton from '../components/CopyButton';
+import { formatMatchText } from '../lib/share';
+import {
+  MAX_RECORDS,
+  POSITIONS,
+  createRecord,
+  emptySlots,
+  parseStoredRecords,
+  splitByPosition,
+  type Player,
+  type Position,
+  type PositionMatch,
+  type TeamRecord
+} from '../lib/positions';
+import { readStored, writeStored } from '../lib/storage';
 
-type Position = 'TOP' | 'JUNGLE' | 'MID' | 'ADC' | 'SUPPORT';
+const RECORDS_KEY = 'teamRecords';
 
-interface Player {
-  name: string;
-  position: Position;
-}
+const loadRecords = () => readStored(RECORDS_KEY, parseStoredRecords) ?? [];
 
-interface TeamRecord {
-  id: string;
-  date: string;
-  teamA: Player[];
-  teamB: Player[];
-}
+const toMembers = (players: Player[]): TeamMember[] =>
+  players.map(player => ({ key: player.position, name: player.name, tag: player.position }));
 
-const POSITIONS: Position[] = ['TOP', 'JUNGLE', 'MID', 'ADC', 'SUPPORT'];
-
-const STORAGE_KEY = 'teamRecords';
-// localStorage 용량 초과를 막기 위해 최근 기록만 남긴다.
-const MAX_RECORDS = 50;
+/** A팀·B팀을 나란히 놓는다. 결과와 기록이 같은 모양을 쓴다. */
+const MatchView = ({ match, compact }: { match: PositionMatch; compact?: boolean }) => (
+  <div className={compact ? 'grid grid-cols-2 gap-4' : 'grid grid-cols-2 gap-6'}>
+    <TeamCard index={0} title="A팀" members={toMembers(match.teamA)} compact={compact} />
+    <TeamCard index={1} title="B팀" members={toMembers(match.teamB)} compact={compact} />
+  </div>
+);
 
 const TeamDivider = () => {
-  const [players, setPlayers] = useState<Record<Position, [string, string]>>({
-    TOP: ['', ''],
-    JUNGLE: ['', ''],
-    MID: ['', ''],
-    ADC: ['', ''],
-    SUPPORT: ['', '']
-  });
-
-  const [teamA, setTeamA] = useState<Player[]>([]);
-  const [teamB, setTeamB] = useState<Player[]>([]);
-  const [records, setRecords] = useState<TeamRecord[]>([]);
+  const [slots, setSlots] = useState(emptySlots);
+  const [match, setMatch] = useState<PositionMatch | null>(null);
+  const [error, setError] = useState('');
+  // 처음 그릴 때부터 저장된 기록을 갖고 시작해야 빈 목록이 잠깐 보였다가 바뀌지 않는다.
+  const [records, setRecords] = useState<TeamRecord[]>(loadRecords);
   const [showHistory, setShowHistory] = useState(false);
 
-  useEffect(() => {
-    // localStorage에서 기록 불러오기.
-    // 저장된 값이 깨져 있어도 화면 전체가 죽지 않도록 파싱 실패를 삼킨다.
-    try {
-      const savedRecords = localStorage.getItem(STORAGE_KEY);
-      if (!savedRecords) return;
+  // 저장은 기록이 바뀔 때 한곳에서만 한다.
+  useEffect(() => writeStored(RECORDS_KEY, records), [records]);
 
-      const parsed = JSON.parse(savedRecords);
-      if (Array.isArray(parsed)) {
-        setRecords(parsed);
-      } else {
-        localStorage.removeItem(STORAGE_KEY);
-      }
-    } catch {
-      localStorage.removeItem(STORAGE_KEY);
-    }
-  }, []);
-
-  const handlePlayerChange = (position: Position, index: number, value: string) => {
-    setPlayers(prev => ({
-      ...prev,
-      [position]: index === 0 ? [value, prev[position][1]] : [prev[position][0], value]
-    }));
-  };
-
-  const saveTeamRecord = (newTeamA: Player[], newTeamB: Player[]) => {
-    const newRecord: TeamRecord = {
-      id: Date.now().toString(),
-      date: new Date().toLocaleString(),
-      teamA: newTeamA,
-      teamB: newTeamB
-    };
-
-    setRecords(prev => {
-      const updatedRecords = [newRecord, ...prev].slice(0, MAX_RECORDS);
-      try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedRecords));
-      } catch {
-        // 용량 초과 등으로 저장에 실패해도 화면의 팀 배정 결과는 유지한다.
-      }
-      return updatedRecords;
+  const changeSlot = (position: Position, index: 0 | 1, value: string) => {
+    setSlots(prev => {
+      const next: [string, string] = [...prev[position]];
+      next[index] = value;
+      return { ...prev, [position]: next };
     });
+    setError('');
   };
 
   const makeTeams = () => {
-    // 모든 포지션에 두 명의 선수가 입력되었는지 확인.
-    // 공백만 입력한 경우도 미입력으로 본다.
-    const isAllFilled = Object.values(players).every(
-      ([p1, p2]) => p1.trim() && p2.trim()
-    );
-    if (!isAllFilled) {
-      alert('모든 포지션에 선수를 입력해주세요!');
+    const result = splitByPosition(slots);
+    if (!result.ok) {
+      setError(result.reason);
       return;
     }
 
-    // 각 포지션별로 랜덤하게 팀 배정
-    const newTeamA: Player[] = [];
-    const newTeamB: Player[] = [];
-
-    POSITIONS.forEach(position => {
-      const [player1, player2] = players[position].map(name => name.trim());
-      if (Math.random() > 0.5) {
-        newTeamA.push({ name: player1, position });
-        newTeamB.push({ name: player2, position });
-      } else {
-        newTeamA.push({ name: player2, position });
-        newTeamB.push({ name: player1, position });
-      }
-    });
-
-    setTeamA(newTeamA);
-    setTeamB(newTeamB);
-    saveTeamRecord(newTeamA, newTeamB);
+    const next = { teamA: result.teamA, teamB: result.teamB };
+    setMatch(next);
+    setError('');
+    setRecords(prev => [createRecord(next), ...prev].slice(0, MAX_RECORDS));
   };
 
-  const resetTeams = () => {
-    setPlayers({
-      TOP: ['', ''],
-      JUNGLE: ['', ''],
-      MID: ['', ''],
-      ADC: ['', ''],
-      SUPPORT: ['', '']
-    });
-    setTeamA([]);
-    setTeamB([]);
+  const reset = () => {
+    setSlots(emptySlots());
+    setMatch(null);
+    setError('');
   };
 
   const clearHistory = () => {
+    if (!window.confirm(`저장된 기록 ${records.length}개를 모두 지울까요?`)) return;
     setRecords([]);
-    localStorage.removeItem('teamRecords');
   };
 
   return (
@@ -138,7 +87,9 @@ const TeamDivider = () => {
           <Button
             variant="outline"
             size="icon"
-            onClick={() => setShowHistory(!showHistory)}
+            onClick={() => setShowHistory(prev => !prev)}
+            aria-label={showHistory ? '기록 닫기' : '기록 보기'}
+            aria-expanded={showHistory}
             className="ml-2"
           >
             <History className="h-4 w-4" />
@@ -146,111 +97,73 @@ const TeamDivider = () => {
         </CardHeader>
         <CardContent>
           <div className="space-y-6">
-            {/* 포지션별 입력 */}
-            {POSITIONS.map((position) => (
-              <div key={position} className="grid grid-cols-3 gap-4 items-center">
+            {POSITIONS.map(position => (
+              <div key={position} className="grid grid-cols-[5.5rem_1fr_1fr] gap-2 sm:gap-4 items-center">
                 <div className="font-bold text-primary">{position}</div>
-                <Input
-                  placeholder="선수 1"
-                  value={players[position][0]}
-                  onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                    handlePlayerChange(position, 0, e.target.value)
-                  }
-                />
-                <Input
-                  placeholder="선수 2"
-                  value={players[position][1]}
-                  onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                    handlePlayerChange(position, 1, e.target.value)
-                  }
-                />
+                {([0, 1] as const).map(index => (
+                  <Input
+                    key={index}
+                    placeholder={`선수 ${index + 1}`}
+                    aria-label={`${position} 선수 ${index + 1}`}
+                    value={slots[position][index]}
+                    onChange={e => changeSlot(position, index, e.target.value)}
+                  />
+                ))}
               </div>
             ))}
 
-            <div className="flex gap-4 mt-6">
-              <Button onClick={makeTeams} className="flex-1">
-                <Dice1 className="mr-2 h-4 w-4" />
-                팀 나누기
-              </Button>
-              <Button variant="secondary" onClick={resetTeams} className="flex-1">
-                초기화
-              </Button>
+            <div className="space-y-2">
+              <div className="flex gap-4">
+                <Button onClick={makeTeams} className="flex-1">
+                  <Dice1 className="mr-2 h-4 w-4" />
+                  팀 나누기
+                </Button>
+                <Button variant="secondary" onClick={reset} className="flex-1">
+                  초기화
+                </Button>
+              </div>
+              {error && (
+                <p role="alert" className="text-sm text-destructive">
+                  {error}
+                </p>
+              )}
             </div>
 
-            {/* 팀 결과 표시 */}
-            {teamA.length > 0 && (
-              <div className="grid grid-cols-2 gap-6 mt-6">
-                <div className="space-y-2">
-                  <h3 className="font-bold text-lg text-blue-600">A팀</h3>
-                  {teamA.map((player) => (
-                    <div key={player.position} className="flex justify-between bg-blue-50 p-2 rounded">
-                      <span className="font-medium">{player.position}</span>
-                      <span>{player.name}</span>
-                    </div>
-                  ))}
+            {match && (
+              <section aria-label="팀 결과" className="space-y-4">
+                <div className="flex justify-end">
+                  <CopyButton getText={() => formatMatchText(match)} />
                 </div>
-                <div className="space-y-2">
-                  <h3 className="font-bold text-lg text-red-600">B팀</h3>
-                  {teamB.map((player) => (
-                    <div key={player.position} className="flex justify-between bg-red-50 p-2 rounded">
-                      <span className="font-medium">{player.position}</span>
-                      <span>{player.name}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
+                <MatchView match={match} />
+              </section>
             )}
 
-            {/* 기록 목록 */}
             {showHistory && (
               <div className="mt-8">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="font-bold text-lg">팀 기록</h3>
                   {records.length > 0 && (
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      onClick={clearHistory}
-                      className="bg-red-500 hover:bg-red-600 text-white font-medium px-4 py-2 rounded-md shadow-sm"
-                    >
+                    <Button variant="destructive" size="sm" onClick={clearHistory}>
                       기록 삭제
                     </Button>
                   )}
                 </div>
-                {records.length === 0 && (
+                {records.length === 0 ? (
                   <p className="text-sm text-muted-foreground">
                     아직 저장된 기록이 없습니다. 팀을 나누면 여기에 기록됩니다.
                   </p>
+                ) : (
+                  <div className="space-y-4">
+                    {records.map(record => (
+                      <Card key={record.id} className="bg-muted/50">
+                        <CardContent className="p-4">
+                          <div className="text-sm text-muted-foreground mb-2">{record.date}</div>
+                          <MatchView match={record} compact />
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
                 )}
-                <div className="space-y-4">
-                  {records.map((record) => (
-                    <Card key={record.id} className="bg-gray-50">
-                      <CardContent className="p-4">
-                        <div className="text-sm text-gray-500 mb-2">{record.date}</div>
-                        <div className="grid grid-cols-2 gap-4">
-                          <div className="space-y-2">
-                            <h4 className="font-medium text-blue-600">A팀</h4>
-                            {record.teamA.map((player) => (
-                              <div key={player.position} className="flex justify-between text-sm">
-                                <span className="font-medium">{player.position}</span>
-                                <span>{player.name}</span>
-                              </div>
-                            ))}
-                          </div>
-                          <div className="space-y-2">
-                            <h4 className="font-medium text-red-600">B팀</h4>
-                            {record.teamB.map((player) => (
-                              <div key={player.position} className="flex justify-between text-sm">
-                                <span className="font-medium">{player.position}</span>
-                                <span>{player.name}</span>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
               </div>
             )}
           </div>

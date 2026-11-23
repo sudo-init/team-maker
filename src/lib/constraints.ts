@@ -1,3 +1,5 @@
+import { createId } from './id';
+
 /** 두 사람 사이에 거는 조건. */
 export type PairKind = 'together' | 'apart';
 
@@ -27,17 +29,76 @@ export const PAIR_KIND_LABEL: Record<PairKind, string> = {
   apart: '다른 팀'
 };
 
-let idCounter = 0;
-
-/** 조건 목록의 React key 겸 삭제용 식별자. 이름이 바뀌어도 안 흔들리게 값과 분리해 둔다. */
+/** 조건 식별자. 이름이 바뀌어도 안 흔들리게 값과 분리해 둔다. */
 export function createConstraintId(): string {
-  idCounter += 1;
-  return `c${Date.now().toString(36)}-${idCounter}`;
+  return createId('c');
 }
 
 /** 두 사람이 순서에 관계없이 같은 짝인지. */
 export function isSamePair(pair: PairConstraint, a: string, b: string): boolean {
   return (pair.a === a && pair.b === b) || (pair.a === b && pair.b === a);
+}
+
+/**
+ * 조건을 추가한 결과.
+ * - added: 새로 들어갔다.
+ * - replaced: 같은 대상에 걸린 기존 조건을 새 조건으로 갈아끼웠다.
+ * - duplicate: 똑같은 조건이 이미 있어 아무것도 바뀌지 않았다.
+ */
+export type ConstraintChange = 'added' | 'replaced' | 'duplicate';
+
+/**
+ * 두 사람 사이에 조건을 건다.
+ * 같은 짝에 '같은 팀'과 '다른 팀'이 동시에 걸리면 모순이므로 기존 조건은 새 조건으로 바꾼다.
+ */
+export function upsertPair(
+  constraints: Constraints,
+  kind: PairKind,
+  a: string,
+  b: string
+): { constraints: Constraints; change: ConstraintChange } {
+  const existing = constraints.pairs.find(pair => isSamePair(pair, a, b));
+  if (existing?.kind === kind) return { constraints, change: 'duplicate' };
+
+  return {
+    constraints: {
+      pairs: [
+        ...constraints.pairs.filter(pair => pair !== existing),
+        { id: createConstraintId(), kind, a, b }
+      ],
+      pins: constraints.pins
+    },
+    change: existing ? 'replaced' : 'added'
+  };
+}
+
+/** 사람을 팀에 고정한다. 한 사람이 두 팀에 고정될 수는 없으니 기존 고정은 갈아끼운다. */
+export function upsertPin(
+  constraints: Constraints,
+  name: string,
+  teamIndex: number
+): { constraints: Constraints; change: ConstraintChange } {
+  const existing = constraints.pins.find(pin => pin.name === name);
+  if (existing?.teamIndex === teamIndex) return { constraints, change: 'duplicate' };
+
+  return {
+    constraints: {
+      pairs: constraints.pairs,
+      pins: [
+        ...constraints.pins.filter(pin => pin !== existing),
+        { id: createConstraintId(), name, teamIndex }
+      ]
+    },
+    change: existing ? 'replaced' : 'added'
+  };
+}
+
+/** id로 조건 하나를 지운다. 짝 조건인지 고정 조건인지는 따지지 않는다. */
+export function removeConstraint(constraints: Constraints, id: string): Constraints {
+  return {
+    pairs: constraints.pairs.filter(pair => pair.id !== id),
+    pins: constraints.pins.filter(pin => pin.id !== id)
+  };
 }
 
 /**
